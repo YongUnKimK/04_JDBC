@@ -111,7 +111,7 @@ public class JDBCExample1 {
 		// 2) int Statement.executeQuery(sql);
 		// -> DML(INSERT ,UPDATE, DELETE)
 		// 결과로 int 반환(삽입, 수정, 삭제된 행의 개수)
-		stmt.executeQuery(sql);
+		
 		rs = stmt.executeQuery(sql);
 		/* 6. 조회 결과가 담겨있는 ResultSet을 
 		 * 커서 ( Cursor ) 을 이용해 한 행씩 접근해
