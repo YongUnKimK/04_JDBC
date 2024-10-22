@@ -191,25 +191,33 @@ public class UserDAO {
 		return userList;
 	}
 
-	public List<User> selectName(Connection conn) throws Exception {
+	/**
+	 * 이름에 검색어가 포함되는 회원 조회
+	 * 
+	 * @param conn
+	 * @param keyword
+	 * @return searchList
+	 * @throws Exception
+	 */
+	public List<User> selectName(Connection conn, String keyword) throws Exception {
 
-		List<User> userList = new ArrayList<User>();
-		Scanner sc = new Scanner(System.in);
-		System.out.println();
-		System.out.print("검색어 입력 : ");
-		String input = sc.next();
+		// 1. 결과 저장용 변수 선언
+		List<User> searchList = new ArrayList<User>();
+
+		// ** 문자열이어쓰기 : ||
 		try {
-
+			// 2. SQL 작성
 			String sql = """
 					SELECT USER_NO, USER_ID, USER_PW, USER_NAME,
 					TO_CHAR(ENROLL_DATE, 'YYYY"년" MM"월" DD"일"') ENROLL_DATE
 					FROM TB_USER
-					WHERE USER_ID LIKE '%?%' """;
+					WHERE USER_NAME LIKE '%' || ? || '%'
+					ORDER BY USER_NO ASC""";
 
 			pstmt = conn.prepareStatement(sql);
-			
-			pstmt.setString(1, input);
-			
+
+			pstmt.setString(1, keyword);
+
 			rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -222,7 +230,7 @@ public class UserDAO {
 
 				User user = new User(userNo, userId, userPw, userName, enrollDate);
 
-				userList.add(user);
+				searchList.add(user);
 			}
 
 		} finally {
@@ -230,7 +238,188 @@ public class UserDAO {
 			close(pstmt);
 		}
 		// 조회 결과가 담긴 List 반환
-		return userList;
+		return searchList;
+	}
+
+	/**
+	 * User_No 을 입력 받아 일치하는 User조회
+	 * 
+	 * @param conn
+	 * @param input
+	 * @return user 객체 or null
+	 * @throws Exception
+	 */
+	public User selectUser(Connection conn, int input) throws Exception {
+
+		// 1. 결과 저장용 변수 선언
+		User user = null;
+
+		try {
+
+			String sql = """
+					SELECT USER_NO, USER_ID, USER_PW, USER_NAME,
+					TO_CHAR(ENROLL_DATE, 'YYYY"년" MM"월" DD"일"') ENROLL_DATE
+					FROM TB_USER
+					WHERE USER_NO = ?
+					""";
+
+			pstmt = conn.prepareStatement(sql);
+
+			pstmt.setInt(1, input);
+
+			rs = pstmt.executeQuery();
+
+			if (rs.next()) {
+				int userNo = rs.getInt("USER_NO");
+				String userId = rs.getString("USER_ID");
+				String userPw = rs.getString("USER_PW");
+				String userName = rs.getString("USER_NAME");
+				String enrollDate = rs.getString("ENROLL_DATE");
+
+				user = new User(userNo, userId, userPw, userName, enrollDate);
+
+			}
+
+		} finally {
+			close(rs);
+			close(pstmt);
+		}
+		return user;
+
+	}
+
+	/**
+	 * USER_NO를 입력 받아 일치하는 User 삭제 DAO
+	 * 
+	 * @param conn
+	 * @param input
+	 * @return
+	 */
+	public int deleteUser(Connection conn, int input) throws Exception {
+
+		int result = 0;
+
+		try {
+
+			String sql = """
+					DELETE FROM TB_USER
+					WHERE USER_NO = ?
+					""";
+
+			pstmt = conn.prepareStatement(sql);
+
+			pstmt.setInt(1, input);
+
+			result = pstmt.executeUpdate();
+
+		} finally {
+			close(pstmt);
+		}
+
+		return result;
+	}
+
+	/**
+	 * ID, PW 가 일치하는 회원의 USER_NO 조회.
+	 * 
+	 * @param conn
+	 * @param userId
+	 * @param userPw
+	 * @return userNo
+	 */
+	public int selectUser(Connection conn, String userId, String userPw) throws Exception {
+
+		int userNo = 0; // 결과 저장용 변수 선언
+
+		try {
+			String sql = """
+					SELECT USER_NO
+					FROM TB_USER
+					WHERE USER_ID = ?
+					AND USER_PW = ?
+					""";
+
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, userId);
+			pstmt.setString(2, userPw);
+
+			rs = pstmt.executeQuery();
+
+			// 조회된 1행이 있을 경우
+			if (rs.next()) {
+				userNo = rs.getInt("USER_NO");
+
+			}
+		} finally {
+			close(rs);
+			close(pstmt);
+
+		}
+
+		return userNo; // 조회 성공 USER_NO, 실패 0 반환
+	}
+
+	/**
+	 * userNo가 일치하는 User의 이름 수정 DAO
+	 * 
+	 * @param conn
+	 * @param userName
+	 * @param userNo
+	 * @return result
+	 * @throws Exception
+	 */
+	public int updateName(Connection conn, String userName, int userNo) throws Exception {
+
+		int result = 0;
+
+		try {
+			String sql = """
+					UPDATE TB_USER
+					SET USER_NAME = ?
+					WHERE USER_NO = ?
+					""";
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, userName);
+			pstmt.setInt(2, userNo);
+
+			result = pstmt.executeUpdate();
+		} finally {
+			close(pstmt);
+		}
+		return result;
+	}
+
+	/**
+	 * 아이디 중복 확인 DAO
+	 * 
+	 * @param conn
+	 * @param userId
+	 * @return
+	 */
+	public int idCheck(Connection conn, String userId) throws Exception {
+
+		int count = 0;
+
+		try {
+			String sql = """
+					SELECT COUNT(*)
+					FROM TB_USER
+					WHERE USER_ID = ?
+					""";
+
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, userId);
+
+			rs = pstmt.executeQuery();
+			if (rs.next()) {
+				count = rs.getInt(1); // 조회된 컬럼 순서를 이용해
+										// 컬럼값 얻어오기
+			}
+
+		} finally {
+
+		}
+		return count;
 	}
 
 }
