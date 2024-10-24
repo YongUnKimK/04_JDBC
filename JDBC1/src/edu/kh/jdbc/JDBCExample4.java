@@ -15,66 +15,90 @@ public class JDBCExample4 {
 		// 사번, 이름, 부서명, 직급명을
 		// 직급코드 오름차순으로 조회
 		
-		Connection conn = null; // 통로
-		Statement stmt = null; // 회송통로 
-		ResultSet rs = null; // SELECT처럼 결과창
-		Scanner sc = new Scanner(System.in);
+		// 부서명 입력 : 총무부
+		// 200 / 선동일 / 총무부 / 대표 
+		// 202 / 노옹철 / 총무부 / 부사장 
+		// 201 / 송종기 / 총무부 / 부사장 
+
+		// hint : SQL 에서 문자열은 양쪽에 '' (홑따옴표) 필요
+		// ex) 총무부 입력 => '총무부'
+		
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		
 		try {
-			// 2. DriverManager 객체를 이용해서 Connection 객체 생성하기
+			
 			Class.forName("oracle.jdbc.driver.OracleDriver");
-			String type = "jdbc:oracle:thin:@";
-			String host = "localhost";
-			String port = ":1521";
-			String dbName = ":XE";
-			String userName = "kh_kyu";
+			
+			String url = "jdbc:oracle:thin:@localhost:1521:XE";
+			String userName = "kh_cmh";
 			String password = "kh1234";
-			conn = DriverManager.getConnection(type + host + port + dbName, userName, password); 			
-			System.out.print("부서 입력 : " );
+			
+			conn = DriverManager.getConnection(url, userName, password);
+			
+			Scanner sc = new Scanner(System.in);
+			
+			System.out.print("부서명 입력 : ");
 			String input = sc.nextLine();
-			String sql = """						
-					SELECT EMP_ID, EMP_NAME, NVL(DEPT_TITLE, '없음') DEPT_TITLE, JOB_NAME
+			
+			String sql = """
+					SELECT 
+						EMP_ID, 
+						EMP_NAME, 
+						NVL(DEPT_TITLE, '없음') DEPT_TITLE, 
+						JOB_NAME
 					FROM EMPLOYEE
-					LEFT JOIN DEPARTMENT ON(DEPT_CODE = DEPT_ID)
-					JOIN JOB USING(JOB_CODE) 
-					WHERE DEPT_TITLE = '""" + input
-					+ "' ORDER BY JOB_CODE ";
+					JOIN JOB USING(JOB_CODE)
+					LEFT JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+					WHERE DEPT_TITLE = '""" + input + "' ORDER BY JOB_CODE";
+					
 			stmt = conn.createStatement();
-			stmt.executeQuery(sql);
-				
 			
 			rs = stmt.executeQuery(sql);
+			
 			boolean flag = true;
-			// 조회 결과 있다면 false
+			// 조회 결과 있다면 false, 없으면 true
 			
 			while(rs.next()) {
-				String empId = rs.getString("EMP_ID");
-				String empName = rs.getString("EMP_NAME");
-				String deptTitle = rs.getString("DEPT_TITLE");
-				String jobName = rs.getString("JOB_NAME");
-				
-				System.out.printf("사번 : %s / 이름 : %s / 부서 : %s / 직급 : %s \n", empId, empName, deptTitle, jobName);
 				flag = false;
+				
+				String empId     = rs.getString("EMP_ID");
+				String empName   = rs.getString("EMP_NAME");
+				String deptTitle = rs.getString("DEPT_TITLE");
+				String jobName   = rs.getString("JOB_NAME");
+				
+				System.out.printf("%s / %s / %s / %s \n", 
+								empId, empName, deptTitle, jobName );
 			}
-			if(flag) {System.out.println("일치하는 부서가 없습니다");}
-			 
-			} catch(Exception e) {
+			
+			if(flag) { // flag == true == while문이 수행된 적 없음
+				System.out.println("일치하는 부서가 없습니다!");
+			}
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			
+		} finally {
+			
+			try {
+				if(rs != null) rs.close();
+				if(stmt != null) stmt.close();
+				if(conn != null ) conn.close();
+				
+			} catch (Exception e) {
 				e.printStackTrace();
-			} finally {
-				try {
-					if (rs != null)
-						rs.close();
-					if (stmt != null)
-						stmt.close();
-					if (conn != null)
-						conn.close();
-				} catch (Exception e) {
-					e.printStackTrace();
 			}
-			}
+			
 		}
 		
 		
 		
+		
+		
+		
+		
+
+	}
+
 }
-
-

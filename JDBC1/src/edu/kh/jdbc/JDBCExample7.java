@@ -32,83 +32,117 @@ public class JDBCExample7 {
 		// 207  | 하이유 | F    | 3200000 | 과장   | 해외영업1부
 		// 210  | 윤은해 | F    | 3000000 | 사원   | 해외영업1부
 		
+		
+		// 1. JDBC 객체 참조변수 선언
 		Connection conn = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		
 		try {
-			Class.forName("oracle.jdbc.driver.OracleDriver");			
+			
+			// 2. DriverManager를 이용해서 Connection 생성
+			Class.forName("oracle.jdbc.driver.OracleDriver");
+			
 			String url = "jdbc:oracle:thin:@localhost:1521:XE";
-			String userName = "kh_kyu";
+			String userName = "kh_cmh";
 			String password = "kh1234";
 			
 			conn = DriverManager.getConnection(url, userName, password);
 			
+			// 3. SQL 작성
 			Scanner sc = new Scanner(System.in);
+			System.out.print("조회할 성별(M/F) : ");
+			String gender = sc.next().toUpperCase(); // 대문자로 변경 (DCODE 조건 1 , 'M' , 2, 'F')
 			
-			System.out.print("조회할 성별 (M/F)");
-			String gender = sc.next().toUpperCase(); // (DCODE 1, 'M', 2, 'F')
-			System.out.print("급여 범위 ( 최소, 최대 순서로 작성 : )");
+			System.out.print("급여 범위(최소, 최대 순서로 작성) : ");
 			int min = sc.nextInt();
 			int max = sc.nextInt();
-			System.out.print("급여 정렬 1. ASC , 2. DESC ");
+			
+			System.out.print("급여 정렬(1.ASC, 2.DESC) : ");
 			int sort = sc.nextInt();
 			
-			String sql = """					
-						SELECT EMP_ID, EMP_NAME, DECODE( SUBSTR(EMP_NO,8,1), '1','M','2','F') 
-						GENDER, SALARY , JOB_NAME, NVL(DEPT_TITLE, '없음') DEPT_TITLE
-						FROM EMPLOYEE 
-						LEFT JOIN DEPARTMENT ON(DEPT_CODE = DEPT_ID)
-						JOIN JOB USING(JOB_CODE)
-						WHERE (DECODE( SUBSTR(EMP_NO,8,1), '1','M','2','F')) = ?
-						AND SALARY BETWEEN ? AND ?
-						ORDER BY SALARY """ ;
-			
+			String sql = """
+					SELECT 
+					EMP_ID, 
+					EMP_NAME, 
+					DECODE( SUBSTR(EMP_NO, 8, 1), '1', 'M', '2', 'F' ) GENDER,
+					SALARY,
+					JOB_NAME,
+					NVL(DEPT_TITLE, '없음') DEPT_TITLE
+					FROM EMPLOYEE
+					JOIN JOB USING(JOB_CODE)
+					LEFT JOIN DEPARTMENT ON(DEPT_CODE = DEPT_ID)
+					WHERE 
+						DECODE( SUBSTR(EMP_NO, 8, 1), '1', 'M', '2', 'F' ) = ?
+					AND 
+						SALARY BETWEEN ? AND ?
+					ORDER BY SALARY
+					""";
 			// -> placeholder -> String -> 리터럴표기법 ''
 			// -> int -> 값
-			
-			// 입력 받은 정렬(sort)값에 따라서 sql에
+		
+			// 입력 받은 정렬(sort) 값에 따라서 sql에
 			// 오름/내림 차순 SQL 추가하기
-			if(sort == 1) {sql += " ASC";};
-			if(sort == 2) {sql += " DESC";};
+			if(sort == 1) sql += " ASC";
+			else 		  sql += " DESC";
 			
-			conn.setAutoCommit(false);
-			pstmt= conn.prepareStatement(sql);
+			// 4. PreparedStatement 객체 생성
+			pstmt = conn.prepareStatement(sql);
 			
-			pstmt.setString(1,gender);
+			// 5. ? (위치홀더)에 알맞은 값 세팅
+			pstmt.setString(1, gender);
 			pstmt.setInt(2, min);
 			pstmt.setInt(3, max);
 			
+			// 6. SQL 수행 후 결과 반환 받기
 			rs = pstmt.executeQuery();
 			
-			System.out.println("사번 | 이름  | 성별 |  급여  | 직급명 | 부서명");
+			// 7. 커서를 이용해서 한 행씩 접근하여 컬럼 값 얻어오기
+			System.out.println("사번 | 이름   | 성별 | 급여    | 직급명 | 부서명");
 			System.out.println("--------------------------------------------------------");
-			boolean flag = true;
+			
+			boolean flag = true; // true : 조회결과가 없음 , false : 조회 결과가 존재함!!
+			
 			while(rs.next()) {
-				String empId = rs.getString("EMP_ID");
-				String empName = rs.getString("EMP_NAME");
-				String gen = rs.getString("GENDER");
-				int salary = rs.getInt("SALARY");
-				String jobName = rs.getString("JOB_NAME");
+				flag = false; // while 1회 이상 반복함 == 조회결과가 1행이라도 있다
+				
+				String empId     = rs.getString("EMP_ID");
+				String empName   = rs.getString("EMP_NAME");
+				String gen       = rs.getString("GENDER");
+				int salary       = rs.getInt("SALARY");
+				String jobName   = rs.getString("JOB_NAME");
 				String deptTitle = rs.getString("DEPT_TITLE");
+				
 				System.out.printf("%-4s | %3s | %-4s | %7d | %-3s  | %s \n",
 						empId, empName, gen, salary, jobName, deptTitle);
-				flag = false;
-			} if(flag) { System.out.println("조회결과 없음");}
-		
+								
+			}
 			
-		} catch(Exception e) {
+			if(flag) { // flag == true인 경우 -> while문 수행 X -> 조회결과가 없음
+				System.out.println("조회 결과 없음");
+			}
+			
+			
+			
+		} catch (Exception e) {
 			e.printStackTrace();
+			
 		} finally {
+			// 8.  사용한 JDBC 객체 자원 반환
+			
 			try {
+				
 				if(rs != null) rs.close();
 				if(pstmt != null) pstmt.close();
 				if(conn != null) conn.close();
-			} catch(Exception e) {
+				
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			
+			
 		}
-
+		
 
 	}
 

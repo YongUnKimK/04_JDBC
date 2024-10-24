@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+	
+	
+	
+	<!--  할 일 삭제 -->
+	<entry key="todoDelete">
+	DELETE TB_TODO
+	WHERE TODO_NO = ?
+	</entry>
+	
+	
+	
+	
+	
+	
+	
+
+</properties>
